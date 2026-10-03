@@ -195,3 +195,48 @@ Aplicativo funcional, responsivo e testado, servido por `npm run dev`
   interface refletiu no saldo (32.672,22) e receita (+1.500 → 34.172,22)
   atualizou ao vivo com toast; 6 rotas varridas **sem erros de console**;
   launcher testado de verdade (API publicada respondendo, SPA 200, demo 200).
+
+---
+
+## Fase 3 — Aplicativo de desktop nativo (WPF + WebView2) e portabilidade
+
+**Data:** 2026-10-03 · **Pedido:** "não é para ser um site, é um aplicativo que eu abra em qualquer computador"
+
+### Decisões
+- **Shell WPF + WebView2** (`app/Finance.App.csproj`): janela nativa Windows com
+  a SPA renderizada dentro — acabou o formato "abrir no navegador".
+- **API embutida no mesmo processo**: `api/Program.cs` refatorado para
+  `FinanceApiHost.Build(...)` (usado pelo standalone e pelo shell). Sem
+  `Process.Start` no C# — o hook Mimosa bloqueia execução de processos com
+  caminhos dinâmicos; o gerenciamento do PostgreSQL ficou no `FINANCE.bat`.
+- **Portabilidade total**: publicação `--self-contained win-x64` (não exige
+  .NET instalado) + binários do PostgreSQL embutidos (`postgres/bin+lib+share`)
+  + `vcredist_x64.exe` de reserva + cluster criado em `data/pgdata` na primeira
+  execução (initdb/createdb pelo .bat). A pasta inteira (`publish-app/`) pode
+  ser copiada para qualquer Windows 10/11 e executada.
+- Instância única via Mutex nomeado; log de diagnóstico em
+  `data/financelog.txt` para suporte remoto.
+
+### Bugs da Fase 3 encontrados e corrigidos
+1. **FrameworkReference faltando** — projeto WPF referenciando projeto Web não
+   herda `Microsoft.AspNetCore.App`; `WebApplication` não compilava.
+2. **Controllers não descobertos** — com a API embutida em outro assembly de
+   entrada, `AddControllers()` não registra os controllers (POST /api/* → 405);
+   corrigido com `.AddApplicationPart(typeof(FinanceApiHost).Assembly)`.
+3. **Ícone da janela** — `Icon="finance.ico"` no XAML exige recurso embutido
+   (pack URI); arquivo solto ao lado do exe derrubava o app com
+   XamlParseException. Ícone agora é aplicado em código a partir do arquivo.
+4. **Hollow de teste** — o harness de automação encerrava a árvore de
+   processos ao fim de cada chamada, matando a janela; teste final executado
+   com tarefa persistente (janela aberta durante a sessão).
+
+### Testes da Fase 3 (executados de verdade)
+- `FINANCE.bat` da pasta portátil: PostgreSQL no ar, janela nativa aberta,
+  health 200, SPA 200 no WebView2, POST /api/auth/demo 200 (após o fix dos
+  controllers) e overview completo (3 contas · 178 transações · 4
+  investimentos) — os dados da fase anterior, pois em uso local o cluster do
+  repositório é reaproveitado; em máquina nova o cluster nasce em `data/`.
+- Atalho **FINANCE** no Desktop atualizado: aponta para
+  `publish-app/FINANCE.bat` (janela minimizada do boot), ícone de gema.
+- Pasta `publish-app/` = 356 MB: executáveis self-contained + SPA + Postgres
+  + vcredist. Copiável para qualquer computador.
