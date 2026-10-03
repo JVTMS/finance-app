@@ -1,0 +1,11 @@
+node_modules/
+dist/
+bin/
+obj/
+publish/
+api/.pgdata/
+api/.local/
+*.user
+*.log
+.DS_Store
+.mimosa/
