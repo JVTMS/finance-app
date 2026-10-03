@@ -10,3 +10,6 @@ api/.local/
 .DS_Store
 .mimosa/
 api/wwwroot/
+publish-app/
+app/wwwroot/
+data/
