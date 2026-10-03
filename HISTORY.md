@@ -134,8 +134,64 @@ Aplicativo funcional, responsivo e testado, servido por `npm run dev`
   iniciar (acesso negado no `net start`) e senha scram desconhecida → criado
   **cluster PostgreSQL próprio do aplicativo** (`initdb` como usuário atual,
   porta **5433**, `trust` apenas em localhost), iniciado/parado pelo launcher.
-  Zero elevação, zero senhas compartilhadas, dados em `api/.pgdata` (gitignored).
+  Zero elevação, zero senhas compartilhadas, dados em `pgdata/` (gitignored).
 - Chave JWT nunca em código/repo: user-secrets no dev; arquivo `.local/jwt.key`
   gerado no primeiro start em produção.
 
-*(Esta seção continua sendo atualizada conforme o backend avança.)*
+### Implementação backend (`finance-app/api/`)
+- `Finance.Api.csproj` — net10.0, Npgsql.EntityFrameworkCore.PostgreSQL,
+  Microsoft.AspNetCore.Authentication.JwtBearer, EFCore.Design.
+- **Entidades**: User (e-mail único), Account, Transaction (precision 14,2),
+  Investment + InvestmentMark (o array `history` virou tabela), Category,
+  Notification, UserPreference. FKs: AccountId Restrict, ToAccountId/CategoryId/
+  InvestmentId SetNull, History Cascade. Índices (UserId, Date).
+- **Auth**: `PasswordHasher` com Rfc2898DeriveBytes (SHA-256, 100k iterações,
+  salt 16 bytes, `CryptographicOperations.FixedTimeEquals`); `TokenService`
+  emite JWT 30 dias; `JwtKeyProvider` resolve a chave de user-secrets (dev) ou
+  `.local/jwt.key` gerada no primeiro start (produção) — nunca versionada.
+- **Controllers**: Auth (register/login/demo/me + DELETE data para "apagar tudo"),
+  Accounts (409 se houver movimentações), Transactions (validação de tipo/conta/
+  destino; side-effects de aporte), Investments (PATCH value com histórico de
+  até 80 marcações), Categories, Notifications (mark-read em lote), Preferences
+  (JSON arbitrário por usuário), Overview (carga inicial agregada).
+- `InvestmentService`: aporte novo/existente atualiza Invested/Current e cria
+  marcação; exclusão de transação reverte; mesma semântica do api.js original.
+- **SeedDemoService**: port fiel do `seed.js` — mulberry32 (semente 20261003)
+  reimplementado em C# com aritmética uint idêntica e a MESMA ordem de consumo
+  do PRNG; gera os mesmos 175 movimentos, 4 investimentos, 13 categorias,
+  3 notificações.
+
+### Bugs da migração encontrados e corrigidos
+1. **`dotnet run --no-build` com binário anterior à migração** — só a tabela
+   `__EFMigrationsHistory` foi criada; resolvido reconstruindo antes de rodar.
+2. **Ciclo de serialização** — `Investment.History[n].Investment.History…`:
+   o EF popula navegações mesmo com AsNoTracking; corrigido com
+   `ReferenceHandler.IgnoreCycles` nos JsonOptions globais.
+3. **Mutações não aguardadas** — com localStorage o padrão `api.addTransaction();
+   reload()` era síncrono; sobre HTTP o `reload()` disparava antes do POST e o
+   saldo não atualizava. Todas as mutações agora são `await` antes do reload
+   (TransactionModal, Dashboard, Transactions, AccountDetailModal, Accounts,
+   AccountFormModal, InvestmentCard, Header).
+
+### Decisão de infraestrutura (execução)
+- `pg_ctl start` segurava o pipe do shell e o TaskStop derrubava o Postgres
+  (job object); cluster movido para `finance-app/pgdata` e start reaproveitado
+  entre sessões. Launcher `FINANCE.bat` (scripts/) sobe Postgres → banco →
+  API publicada → abre navegador; atalho **FINANCE.lnk** criado no Desktop
+  (`C:\Users\joao\Desktop`) com ícone próprio (gema dourada, .ico 64/32/16
+  gerado por `scripts/make-icon.ps1`).
+- `dotnet publish -c Release -o publish` com o build do Vite copiado para
+  `api/wwwroot` → processo único servindo SPA + API na porta 5280.
+
+### Testes da Fase 2 (executados de verdade)
+- API: health, demo login (JWT), overview (3 contas · 175+ transações · 4
+  investimentos · 13 categorias · 3 notificações), criação de receita
+  (id 176) e despesa (id 177 "Livro de arquitetura" R$ 89,90) **confirmadas
+  por psql direto no PostgreSQL**, senha errada → 401, sem token → 401,
+  isolamento entre usuários (novo usuário vê 1 conta/0 transações), troca de
+  preferência persistida e relida.
+- UI sobre API: login demo reproduziu **R$ 32.762,12 — valor idêntico** ao da
+  fase localStorage (seed determinístico validado ponta a ponta); despesa pela
+  interface refletiu no saldo (32.672,22) e receita (+1.500 → 34.172,22)
+  atualizou ao vivo com toast; 6 rotas varridas **sem erros de console**;
+  launcher testado de verdade (API publicada respondendo, SPA 200, demo 200).
