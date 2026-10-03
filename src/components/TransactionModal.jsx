@@ -110,7 +110,7 @@ export default function TransactionModal({ open, onClose, initialType = 'receita
     return Object.keys(e).length === 0;
   };
 
-  const submit = (ev) => {
+  const submit = async (ev) => {
     ev.preventDefault();
     if (!validate()) {
       sound.warn();
@@ -139,32 +139,36 @@ export default function TransactionModal({ open, onClose, initialType = 'receita
       }
     }
 
-    api.addTransaction(user.id, payload);
-    reload();
+    try {
+      await api.addTransaction(user.id, payload);
+      await reload();
 
-    const valueLabel = formatBRL(form.amount);
-    if (type === 'receita') {
-      push({ type: 'success', title: 'Receita adicionada', message: `${form.name} · ${valueLabel}`, sound: 'success' });
-    } else if (type === 'despesa') {
-      push({ type: 'success', title: 'Despesa registrada', message: `${form.name} · ${valueLabel}`, sound: 'expense' });
-      const acc = accounts.find((a) => a.id === form.accountId);
-      const remaining = acc ? accountBalance(acc, transactions) - form.amount : null;
-      if (remaining !== null && remaining < 200) {
-        push({
-          type: 'warn',
-          title: 'Saldo baixo',
-          message: `${acc.name} ficará com ${formatBRL(remaining)}.`,
-          sound: 'warn',
-          duration: 4500,
-        });
+      const valueLabel = formatBRL(form.amount);
+      if (type === 'receita') {
+        push({ type: 'success', title: 'Receita adicionada', message: `${form.name} · ${valueLabel}`, sound: 'success' });
+      } else if (type === 'despesa') {
+        push({ type: 'success', title: 'Despesa registrada', message: `${form.name} · ${valueLabel}`, sound: 'expense' });
+        const acc = accounts.find((a) => a.id === form.accountId);
+        const remaining = acc ? accountBalance(acc, transactions) - form.amount : null;
+        if (remaining !== null && remaining < 200) {
+          push({
+            type: 'warn',
+            title: 'Saldo baixo',
+            message: `${acc.name} ficará com ${formatBRL(remaining)}.`,
+            sound: 'warn',
+            duration: 4500,
+          });
+        }
+      } else if (type === 'transferencia') {
+        push({ type: 'success', title: 'Transferência registrada', message: `${valueLabel} movimentado entre contas.`, sound: 'success' });
+      } else {
+        push({ type: 'success', title: 'Investimento registrado', message: `${form.invName || 'Aporte'} · ${valueLabel}`, sound: 'success' });
       }
-    } else if (type === 'transferencia') {
-      push({ type: 'success', title: 'Transferência registrada', message: `${valueLabel} movimentado entre contas.`, sound: 'success' });
-    } else {
-      push({ type: 'success', title: 'Investimento registrado', message: `${form.invName || 'Aporte'} · ${valueLabel}`, sound: 'success' });
-    }
 
-    onClose();
+      onClose();
+    } catch (e) {
+      push({ type: 'error', title: 'Não foi possível registrar', message: e.message, sound: 'warn', record: false });
+    }
   };
 
   if (!accounts.length) {

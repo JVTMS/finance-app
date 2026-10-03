@@ -38,9 +38,9 @@ export default function AccountDetailModal({ account, onClose, onDelete, onEdit 
 
   if (!account || !data) return null;
 
-  const removeTx = (tx) => {
-    api.deleteTransaction(user.id, tx.id);
-    reload();
+  const removeTx = async (tx) => {
+    await api.deleteTransaction(user.id, tx.id);
+    await reload();
     push({ type: 'info', title: 'Transação excluída', message: tx.name, sound: 'click' });
   };
 
@@ -90,11 +90,12 @@ export default function AccountDetailModal({ account, onClose, onDelete, onEdit 
           {onDelete && (
             <button
               className="btn btn--danger-ghost acct-detail__delete"
-              onClick={() => {
-                const res = onDelete(account);
+              onClick={async () => {
+                const res = await onDelete(account);
                 if (res?.error) {
                   push({ type: 'warn', title: 'Não foi possível excluir', message: res.error, sound: 'warn' });
                 } else {
+                  await reload();
                   push({ type: 'info', title: 'Conta excluída', message: account.name, sound: 'click' });
                   onClose();
                 }

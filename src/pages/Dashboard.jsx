@@ -70,9 +70,9 @@ export default function Dashboard() {
     };
   }, [accounts, transactions, investments, categories]);
 
-  const removeTx = (tx) => {
-    api.deleteTransaction(user.id, tx.id);
-    reload();
+  const removeTx = async (tx) => {
+    await api.deleteTransaction(user.id, tx.id);
+    await reload();
     push({ type: 'info', title: 'Transação excluída', message: tx.name, sound: 'click' });
   };
 

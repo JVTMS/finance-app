@@ -7,7 +7,6 @@ import { useToast } from '../context/ToastContext';
 import { useSettings } from '../context/SettingsContext';
 import Modal from '../components/ui/Modal';
 import { THEMES } from '../data/themes';
-import { DEMO_EMAIL, ensureDemoSeed } from '../services/seed';
 import { cx } from '../utils/format';
 import { sound } from '../services/sound';
 
@@ -61,11 +60,11 @@ export default function Login({ onEnter }) {
   const demo = async () => {
     setBusy(true);
     try {
-      await ensureDemoSeed();
-      loginDemo(DEMO_EMAIL);
+      await loginDemo();
       welcome('Demonstração');
     } catch (err) {
-      setError(err.message);
+      setError(err.message || 'Conta demo indisponível.');
+      sound.warn();
     } finally {
       setBusy(false);
     }

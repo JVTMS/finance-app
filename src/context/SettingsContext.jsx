@@ -1,5 +1,5 @@
 // Preferências globais: tema, modo cinematográfico, modo performance e som.
-// Persistidas por usuário (com escopo global antes do login).
+// Persistidas no servidor (por usuário); carregadas no boot com update otimista.
 
 import { createContext, useContext, useEffect, useMemo, useCallback, useState } from 'react';
 import * as api from '../api/api';
@@ -9,6 +9,14 @@ import { rgba, mix } from '../utils/color';
 import { sound } from '../services/sound';
 
 const SettingsContext = createContext(null);
+
+const INITIAL_PREFS = {
+  themeId: 'luxo',
+  custom: DEFAULT_CUSTOM,
+  cinematic: true,
+  performance: false,
+  soundOn: false,
+};
 
 function customVars(custom) {
   const c = { ...DEFAULT_CUSTOM, ...custom };
@@ -39,58 +47,63 @@ function customVars(custom) {
 
 export function SettingsProvider({ children }) {
   const { user } = useAuth();
-  const [prefVersion, setPrefVersion] = useState(0);
+  const [prefs, setPrefs] = useState(INITIAL_PREFS);
 
-  const scope = user?.id ?? 'global';
-
-  const settings = useMemo(
-    () => ({
-      themeId: api.getPref(scope, 'theme', 'luxo'),
-      custom: { ...DEFAULT_CUSTOM, ...(api.getPref(scope, 'customTheme', {}) || {}) },
-      cinematic: api.getPref(scope, 'cinematic', true),
-      performance: api.getPref(scope, 'performance', false),
-      soundOn: api.getPref(scope, 'sound', false),
-    }),
-    [scope, prefVersion]
-  );
-
-  const update = useCallback(
-    (key, value) => {
-      api.setPref(scope, key, value);
-      setPrefVersion((v) => v + 1);
-    },
-    [scope]
-  );
+  // Carrega preferências do servidor ao (t)rocar de usuário.
+  useEffect(() => {
+    let alive = true;
+    (async () => {
+      const remote = await api.getAllPreferences();
+      if (!alive) return;
+      setPrefs({
+        themeId: remote.themeId ?? 'luxo',
+        custom: { ...DEFAULT_CUSTOM, ...(remote.custom || {}) },
+        cinematic: remote.cinematic ?? true,
+        performance: remote.performance ?? false,
+        soundOn: remote.soundOn ?? false,
+      });
+    })();
+    return () => {
+      alive = false;
+    };
+  }, [user?.id]);
 
   // Aplica tema e flags no documento.
   useEffect(() => {
     const root = document.documentElement;
-    const theme = THEMES.find((t) => t.id === settings.themeId);
-    root.dataset.theme = settings.themeId;
-    root.dataset.mode = settings.themeId === 'custom' || theme?.dark ? 'dark' : 'light';
-    root.dataset.cinematic = settings.cinematic ? 'on' : 'off';
-    root.dataset.performance = settings.performance ? 'on' : 'off';
+    const theme = THEMES.find((t) => t.id === prefs.themeId);
+    root.dataset.theme = prefs.themeId;
+    root.dataset.mode = prefs.themeId === 'custom' || theme?.dark ? 'dark' : 'light';
+    root.dataset.cinematic = prefs.cinematic ? 'on' : 'off';
+    root.dataset.performance = prefs.performance ? 'on' : 'off';
 
     for (const key of Object.keys(customVars(DEFAULT_CUSTOM))) root.style.removeProperty(key);
-    if (settings.themeId === 'custom') {
-      for (const [k, v] of Object.entries(customVars(settings.custom))) root.style.setProperty(k, v);
+    if (prefs.themeId === 'custom') {
+      for (const [k, v] of Object.entries(customVars(prefs.custom))) root.style.setProperty(k, v);
     }
-    sound.enabled = settings.soundOn;
-  }, [settings]);
+    sound.enabled = prefs.soundOn;
+  }, [prefs]);
+
+  const update = useCallback(
+    (key, value) => {
+      setPrefs((p) => ({ ...p, [key]: value }));
+      api.setPreference(key, value).catch(() => {});
+    },
+    []
+  );
 
   const value = useMemo(
     () => ({
-      ...settings,
-      isCustom: settings.themeId === 'custom',
-      setTheme: (id) => update('theme', id),
-      setCustom: (patch) => update('customTheme', { ...settings.custom, ...patch }),
+      ...prefs,
+      isCustom: prefs.themeId === 'custom',
+      setTheme: (id) => update('themeId', id),
+      setCustom: (patch) => update('custom', { ...prefs.custom, ...patch }),
       setCinematic: (v) => update('cinematic', v),
       setPerformance: (v) => update('performance', v),
-      setSoundOn: (v) => update('sound', v),
+      setSoundOn: (v) => update('soundOn', v),
     }),
-    [settings, update]
+    [prefs, update]
   );
-
   return <SettingsContext.Provider value={value}>{children}</SettingsContext.Provider>;
 }
 

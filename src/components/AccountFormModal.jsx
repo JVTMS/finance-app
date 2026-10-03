@@ -46,22 +46,26 @@ export default function AccountFormModal({ open, onClose, editing }) {
 
   const set = (k, v) => setForm((f) => ({ ...f, [k]: v }));
 
-  const submit = (e) => {
+  const submit = async (e) => {
     e.preventDefault();
     const errs = {};
     if (!form.name.trim()) errs.name = 'Dê um nome à conta.';
     if (form.initialBalance === null) errs.initialBalance = 'Informe o saldo atual (pode ser 0).';
     setErrors(errs);
     if (Object.keys(errs).length) return;
-    if (editing) {
-      api.updateAccount(user.id, editing.id, { ...form, name: form.name.trim() });
-      push({ type: 'success', title: 'Conta atualizada', message: form.name, sound: 'success' });
-    } else {
-      api.addAccount(user.id, form);
-      push({ type: 'success', title: 'Conta adicionada', message: form.name, sound: 'success' });
+    try {
+      if (editing) {
+        await api.updateAccount(user.id, editing.id, { ...form, name: form.name.trim() });
+        push({ type: 'success', title: 'Conta atualizada', message: form.name, sound: 'success' });
+      } else {
+        await api.addAccount(user.id, form);
+        push({ type: 'success', title: 'Conta adicionada', message: form.name, sound: 'success' });
+      }
+      await reload();
+      onClose();
+    } catch (err) {
+      push({ type: 'error', title: 'Não foi possível salvar a conta', message: err.message, sound: 'warn', record: false });
     }
-    reload();
-    onClose();
   };
 
   return (

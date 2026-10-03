@@ -41,11 +41,11 @@ export default function Header({ title, subtitle, onOpenSearch }) {
     return () => document.removeEventListener('mousedown', onDoc);
   }, []);
 
-  const openBell = () => {
+  const openBell = async () => {
     sound.open();
     setBellOpen((o) => !o);
     if (!bellOpen && unread > 0 && user) {
-      api.markNotificationsRead(user.id);
+      await api.markNotificationsRead(user.id);
       reload();
     }
   };

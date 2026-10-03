@@ -26,14 +26,14 @@ export default function InvestmentCard({ investment, delay = 0 }) {
   const rendPct = investment.invested > 0 ? rendimento / investment.invested : 0;
   const historyValues = (investment.history || []).map((h) => h.value);
 
-  const saveNewValue = (e) => {
+  const saveNewValue = async (e) => {
     e.preventDefault();
     if (newValue === null || newValue < 0) {
       setError('Informe o valor atual do investimento.');
       return;
     }
-    api.updateInvestmentValue(user.id, investment.id, newValue);
-    reload();
+    await api.updateInvestmentValue(user.id, investment.id, newValue);
+    await reload();
     push({
       type: 'success',
       title: 'Investimento atualizado',
@@ -43,9 +43,9 @@ export default function InvestmentCard({ investment, delay = 0 }) {
     setUpdateOpen(false);
   };
 
-  const doDelete = () => {
-    api.deleteInvestment(user.id, investment.id);
-    reload();
+  const doDelete = async () => {
+    await api.deleteInvestment(user.id, investment.id);
+    await reload();
     push({ type: 'info', title: 'Investimento removido', message: investment.name, sound: 'click' });
   };
 

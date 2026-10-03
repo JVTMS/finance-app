@@ -1,7 +1,5 @@
 import { createContext, useContext, useEffect, useState, useCallback } from 'react';
 import * as authApi from '../auth/auth';
-import * as api from '../api/api';
-import { ensureDemoSeed } from '../services/seed';
 
 const AuthContext = createContext(null);
 
@@ -9,36 +7,40 @@ export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [ready, setReady] = useState(false);
 
+  // Bootstrap: valida o token salvo contra a API.
   useEffect(() => {
     let alive = true;
     (async () => {
-      await ensureDemoSeed();
-      if (alive) {
-        setUser(authApi.currentUser());
-        setReady(true);
+      try {
+        const u = await authApi.currentUser();
+        if (alive) setUser(u);
+      } catch {
+        /* servidor indisponível → tratado como sem sessão */
       }
+      if (alive) setReady(true);
     })();
+    const onUnauthorized = () => setUser(null);
+    window.addEventListener('finance:unauthorized', onUnauthorized);
     return () => {
       alive = false;
+      window.removeEventListener('finance:unauthorized', onUnauthorized);
     };
   }, []);
 
   const login = useCallback(async (credentials) => {
     const u = await authApi.login(credentials);
-    api.createDefaultUserData(u.id);
     setUser(u);
     return u;
   }, []);
 
   const register = useCallback(async (credentials) => {
     const u = await authApi.register(credentials);
-    api.createDefaultUserData(u.id);
     setUser(u);
     return u;
   }, []);
 
-  const loginDemo = useCallback((email) => {
-    const u = authApi.loginDemo(email);
+  const loginDemo = useCallback(async () => {
+    const u = await authApi.loginDemo();
     setUser(u);
     return u;
   }, []);

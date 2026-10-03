@@ -6,6 +6,9 @@ export default defineConfig({
   server: {
     port: 5173,
     host: true,
+    proxy: {
+      '/api': 'http://localhost:5280',
+    },
   },
   build: {
     target: 'es2019',

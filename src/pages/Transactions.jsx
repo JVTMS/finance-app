@@ -106,9 +106,9 @@ export default function Transactions() {
     setMinMax({ min: '', max: '' });
   };
 
-  const removeTx = (tx) => {
-    api.deleteTransaction(user.id, tx.id);
-    reload();
+  const removeTx = async (tx) => {
+    await api.deleteTransaction(user.id, tx.id);
+    await reload();
     push({ type: 'info', title: 'Transação excluída', message: tx.name, sound: 'click' });
   };
 

@@ -11,8 +11,7 @@ import { useFinance } from '../context/FinanceContext';
 import ThemeSelector from '../components/ThemeSelector';
 import Modal from '../components/ui/Modal';
 import { sound } from '../services/sound';
-import { resetAll } from '../database/db';
-import { logout } from '../auth/auth';
+import * as api from '../api/api';
 import { formatBRL } from '../utils/format';
 
 function Toggle({ checked, onChange, label, id }) {
@@ -55,15 +54,20 @@ export default function Settings() {
   const {
     cinematic, setCinematic, performance, setPerformance, soundOn, setSoundOn, themeId,
   } = useSettings();
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
   const { push } = useToast();
   const { accounts, transactions, investments } = useFinance();
   const [wipeOpen, setWipeOpen] = useState(false);
 
   const total = accounts.reduce((s, a) => s + Math.max(0, a.initialBalance), 0);
 
-  const doWipe = () => {
-    resetAll();
+  const doWipe = async () => {
+    try {
+      await api.deleteMyData();
+      push({ type: 'info', title: 'Dados apagados', record: false });
+    } catch {
+      push({ type: 'warn', title: 'Não foi possível apagar no servidor', record: false });
+    }
     logout();
     window.location.hash = '#/dashboard';
     window.location.reload();
@@ -132,7 +136,7 @@ export default function Settings() {
         <SettingsRow
           icon={Trash2}
           title="Apagar todos os dados"
-          description={`Remove contas, transações e investimentos deste navegador (${accounts.length} contas · ${transactions.length} transações · ${formatBRL(total)} em saldos iniciais). Esta ação não pode ser desfeita.`}
+          description={`Remove transações, contas, investimentos e preferências da sua conta no servidor (${accounts.length} contas · ${transactions.length} transações · ${formatBRL(total)} em saldos iniciais). Esta ação não pode ser desfeita.`}
         >
           <button className="btn btn--danger" onClick={() => setWipeOpen(true)}>
             Apagar tudo

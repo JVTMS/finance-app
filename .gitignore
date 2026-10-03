@@ -3,9 +3,10 @@ dist/
 bin/
 obj/
 publish/
-api/.pgdata/
+pgdata/
 api/.local/
 *.user
 *.log
 .DS_Store
 .mimosa/
+api/wwwroot/
