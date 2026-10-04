@@ -240,3 +240,40 @@ Aplicativo funcional, responsivo e testado, servido por `npm run dev`
   `publish-app/FINANCE.bat` (janela minimizada do boot), ícone de gema.
 - Pasta `publish-app/` = 356 MB: executáveis self-contained + SPA + Postgres
   + vcredist. Copiável para qualquer computador.
+
+---
+
+## Fase 4 — Fechamento: garantia de primeira execução, silêncio e distribuição
+
+**Data:** 2026-10-04
+
+### 1. Histórico completo no GitHub
+- Credencial do git ligada ao gh (`gh auth setup-git`) — o push anterior falhava
+  com "could not read Username". Commits do desktop (`22a1e79`) e docs
+  (`bc0ab6d`) publicados; repositório JVTMS/finance-app (privado) completo.
+
+### 2. Primeira execução limpa — validada de verdade
+- Simulação de máquina nova: cluster dev parado, pasta portátil sem `data/`.
+- `FINANCE.bat` executou initdb → createdb → subiu o Postgres (porta 5433) →
+  abriu a janela → API embutida + SPA 200 → demo semeou **exatamente 175
+  transações** (número de máquina nova; as 178 anteriores incluíam dados de
+  teste) → ao fechar a janela, o bat encerrou o banco (ciclo completo).
+- Cluster de teste removido depois, para a pasta distribuída nascer virgem.
+
+### 3. Abertura silenciosa
+- `FINANCE.vbs`: executa o bat com console totalmente oculto (WindowStyle 0).
+- Atalho do Desktop aponta para o .vbs com o ícone de gema — duplo clique
+  agora abre direto a janela do app, sem flash de console.
+- Validado: janela aberta e API respondendo via caminho silencioso.
+
+### 4. Distribuição reproduzível
+- `scripts/build-portable.ps1`: um comando regenera `publish-app/` inteira
+  (build Vite → publish self-contained → SPA no wwwroot → remove entry point
+  duplicado da API → embute Postgres bin+lib+share → vcredist → launchers).
+- `Finance.Api.exe/.pdb/.runtimeconfig.json` removidos da pasta final — a
+  janela (`Finance.App.exe`) é o único executável do aplicativo.
+
+### 5. Auditoria de segurança completa (Mimosa)
+- Varredura deep executada sobre o projeto inteiro a pedido do próprio hook
+  (que sinalizava ausência de auditoria completa a cada commit).
+- Resultado registrado abaixo quando concluída.
