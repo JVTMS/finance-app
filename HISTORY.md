@@ -285,6 +285,13 @@ Aplicativo funcional, responsivo e testado, servido por `npm run dev`
   "SSRF" em fetch same-origin de navegador não se aplica) + o mesmo
   Process.Start de URL fixa da Microsoft (link de download do WebView2,
   sem input do usuário). Triagem: **falso positivo por inspeção**.
+- **Correções estruturais em vez de contornar o bloqueio do hook:**
+  1. a pasta portátil saiu da árvore do repositório → gerada em
+     `../finance-app-dist/` (output de build não pertence à árvore de
+     análise nem ao git);
+  2. o `Process.Start` foi removido do shell — o painel de erro do WebView2
+     mostra o link como texto e copia para a área de transferência
+     (`Clipboard.SetText`), sem abrir navegador via processo.
 - Resultado líquido: **nenhuma vulnerabilidade real identificada** no código
  -fonte (api/ C#, app/ C#, src/ JavaScript); 112 dependências varridas, 0
   avisos de vulnerabilidade conhecida.
