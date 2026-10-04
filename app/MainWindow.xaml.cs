@@ -1,4 +1,3 @@
-using System.Diagnostics;
 using System.IO;
 using System.Windows;
 using System.Windows.Media;
@@ -16,6 +15,7 @@ public class WebView2MissingException : Exception
 
 public partial class MainWindow : Window
 {
+    private const string WebView2DownloadUrl = "https://developer.microsoft.com/microsoft-edge/webview2/";
     private WebApplication? _api;
     private int _port;
 
@@ -57,7 +57,9 @@ public partial class MainWindow : Window
         {
             ShowError(
                 "O componente de interface (WebView2 Runtime) não está instalado neste computador.\n\n" +
-                "Clique no botão abaixo para baixá-lo da Microsoft (gratuito, ~1 minuto), instale e abra o FINANCE novamente.");
+                "Baixe-o da Microsoft (gratuito, ~1 minuto), instale e abra o FINANCE novamente. " +
+                "O link já foi copiado para a área de transferência:",
+                WebView2DownloadUrl);
         }
         catch (Exception ex)
         {
@@ -82,16 +84,28 @@ public partial class MainWindow : Window
         WebViewPanel.Visibility = Visibility.Visible;
     }
 
-    private void ShowError(string message)
+    private void ShowError(string message, string? linkToCopy = null)
     {
         LoadingPanel.Visibility = Visibility.Collapsed;
         WebViewPanel.Visibility = Visibility.Collapsed;
         ErrorText.Text = message;
+        if (linkToCopy is not null)
+        {
+            LinkText.Text = linkToCopy;
+            LinkText.Visibility = Visibility.Visible;
+            try { Clipboard.SetText(linkToCopy); } catch { /* área de transferência pode falhar */ }
+        }
+        else
+        {
+            LinkText.Visibility = Visibility.Collapsed;
+        }
         ErrorPanel.Visibility = Visibility.Visible;
     }
 
-    private void OpenRuntimePage_Click(object sender, RoutedEventArgs e) =>
-        Process.Start(new ProcessStartInfo("https://developer.microsoft.com/microsoft-edge/webview2/") { UseShellExecute = true });
+    private void CopyLink_Click(object sender, RoutedEventArgs e)
+    {
+        try { Clipboard.SetText(LinkText.Text); } catch { }
+    }
 
     private void SetLoading(string main, string detail)
     {

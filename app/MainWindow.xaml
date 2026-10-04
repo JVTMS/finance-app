@@ -36,15 +36,18 @@
 
         <!-- erro fatal (ex.: WebView2 ausente) -->
         <Grid x:Name="ErrorPanel" Visibility="Collapsed" Background="#050505">
-            <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" MaxWidth="520"
+            <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" MaxWidth="560"
                         TextBlock.Foreground="#e8e0cf">
                 <TextBlock Text="Não foi possível iniciar o FINANCE" FontSize="20" FontWeight="Bold"
                            Foreground="#d4af37" Margin="0,0,0,12"/>
                 <TextBlock x:Name="ErrorText" TextWrapping="Wrap" FontSize="13" LineHeight="20"/>
-                <Button x:Name="OpenRuntimePage" Content="Baixar WebView2 Runtime"
-                        Click="OpenRuntimePage_Click" Margin="0,18,0,0" Padding="14,8"
-                        Background="#d4af37" Foreground="#12100b" FontWeight="SemiBold"
-                        BorderThickness="0" Cursor="Hand" HorizontalAlignment="Left"/>
+                <TextBlock x:Name="LinkText" TextWrapping="Wrap" FontSize="13" Foreground="#d4af37"
+                           Margin="0,10,0,0"/>
+                <StackPanel Orientation="Horizontal" Margin="0,14,0,0">
+                    <Button x:Name="CopyLink" Content="Copiar link" Click="CopyLink_Click"
+                            Padding="14,8" Background="#d4af37" Foreground="#12100b" FontWeight="SemiBold"
+                            BorderThickness="0" Cursor="Hand"/>
+                </StackPanel>
             </StackPanel>
         </Grid>
     </Grid>

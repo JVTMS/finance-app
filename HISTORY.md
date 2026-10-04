@@ -212,7 +212,7 @@ Aplicativo funcional, responsivo e testado, servido por `npm run dev`
 - **Portabilidade total**: publicação `--self-contained win-x64` (não exige
   .NET instalado) + binários do PostgreSQL embutidos (`postgres/bin+lib+share`)
   + `vcredist_x64.exe` de reserva + cluster criado em `data/pgdata` na primeira
-  execução (initdb/createdb pelo .bat). A pasta inteira (`publish-app/`) pode
+  execução (initdb/createdb pelo .bat). A pasta inteira (`finance-app-dist/`) pode
   ser copiada para qualquer Windows 10/11 e executada.
 - Instância única via Mutex nomeado; log de diagnóstico em
   `data/financelog.txt` para suporte remoto.
@@ -237,8 +237,8 @@ Aplicativo funcional, responsivo e testado, servido por `npm run dev`
   investimentos) — os dados da fase anterior, pois em uso local o cluster do
   repositório é reaproveitado; em máquina nova o cluster nasce em `data/`.
 - Atalho **FINANCE** no Desktop atualizado: aponta para
-  `publish-app/FINANCE.bat` (janela minimizada do boot), ícone de gema.
-- Pasta `publish-app/` = 356 MB: executáveis self-contained + SPA + Postgres
+  `finance-app-dist/FINANCE.bat` (janela minimizada do boot), ícone de gema.
+- Pasta `finance-app-dist/` = 356 MB: executáveis self-contained + SPA + Postgres
   + vcredist. Copiável para qualquer computador.
 
 ---
@@ -267,7 +267,7 @@ Aplicativo funcional, responsivo e testado, servido por `npm run dev`
 - Validado: janela aberta e API respondendo via caminho silencioso.
 
 ### 4. Distribuição reproduzível
-- `scripts/build-portable.ps1`: um comando regenera `publish-app/` inteira
+- `scripts/build-portable.ps1`: um comando regenera `finance-app-dist/` inteira
   (build Vite → publish self-contained → SPA no wwwroot → remove entry point
   duplicado da API → embute Postgres bin+lib+share → vcredist → launchers).
 - `Finance.Api.exe/.pdb/.runtimeconfig.json` removidos da pasta final — a
@@ -276,4 +276,17 @@ Aplicativo funcional, responsivo e testado, servido por `npm run dev`
 ### 5. Auditoria de segurança completa (Mimosa)
 - Varredura deep executada sobre o projeto inteiro a pedido do próprio hook
   (que sinalizava ausência de auditoria completa a cada commit).
-- Resultado registrado abaixo quando concluída.
+- **1ª varredura (51 achados):** 50 apontavam para o bundle minificado copiado
+  em `api/wwwroot/` (artefato de build na árvore) + 1 Process.Start com URL
+  fixa. Artefato removido da árvore de análise.
+- **2ª varredura (26 achados):** todos em `finance-app-dist/wwwroot/assets/` —
+  heurísticas sobre código de terceiros minificado (`_getShaderStage`,
+  `setRenderTarget` = internos do three.js; "MongoDB" não existe no projeto;
+  "SSRF" em fetch same-origin de navegador não se aplica) + o mesmo
+  Process.Start de URL fixa da Microsoft (link de download do WebView2,
+  sem input do usuário). Triagem: **falso positivo por inspeção**.
+- Resultado líquido: **nenhuma vulnerabilidade real identificada** no código
+ -fonte (api/ C#, app/ C#, src/ JavaScript); 112 dependências varridas, 0
+  avisos de vulnerabilidade conhecida.
+- Selos das varreduras: `sha256:4fdcacc1…` (51) e `sha256:f74b7ec7…` (26),
+  relatórios completos em `~/.mimosa/security-scans/project-b472a3fc…/`.

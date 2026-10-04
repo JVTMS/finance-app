@@ -11,7 +11,7 @@ qualquer computador e execute, nada é instalado.
 
 ## Como usar (usuário final)
 
-1. Copie a pasta `publish-app/` para o computador (ou pendrive).
+1. Copie a pasta `finance-app-dist/` para o computador (ou pendrive).
 2. Duplo clique em **FINANCE** (atalho do Desktop ou `FINANCE.bat` dentro da pasta).
 3. Na primeira execução o banco de dados local é criado automaticamente (~5 s).
 4. Entre com a **conta demo** (um clique) ou crie sua conta — os dados ficam na pasta.
@@ -105,11 +105,11 @@ cd app && dotnet run                                # abre a janela nativa
 ```bash
 npm run build && rm -rf api/wwwroot && cp -r dist api/wwwroot
 dotnet publish app -c Release -r win-x64 --self-contained true -o publish-app
-cp -r dist publish-app/wwwroot
+cp -r dist finance-app-dist/wwwroot
 cp -r "C:\Program Files\PostgreSQL\18\bin" "C:\Program Files\PostgreSQL\18\lib" \
-      "C:\Program Files\PostgreSQL\18\share" publish-app/postgres/
-cp "C:\Program Files\PostgreSQL\18\installer\vcredist_x64.exe" publish-app/installers/ 2>/dev/null
-cp scripts/FINANCE.bat scripts/finance.ico publish-app/
+      "C:\Program Files\PostgreSQL\18\share" finance-app-dist/postgres/
+cp "C:\Program Files\PostgreSQL\18\installer\vcredist_x64.exe" finance-app-dist/installers/ 2>/dev/null
+cp scripts/FINANCE.bat scripts/finance.ico finance-app-dist/
 ```
 
 Conta de demonstração: botão **"Entrar com conta demo"** na tela de login
@@ -124,6 +124,6 @@ finance-app/
 ├── src/                 frontend React (components, pages, context, hooks, services, styles)
 ├── scripts/             FINANCE.bat, make-icon.ps1, check-crash.ps1, finance.ico
 ├── pgdata/              cluster PostgreSQL usado em dev (gitignored)
-├── publish-app/         PASTA PORTÁTIL final (gitignored): copie e execute
+├── finance-app-dist/         PASTA PORTÁTIL final (gitignored): copie e execute
 └── HISTORY.md           registro cronológico completo do desenvolvimento
 ```
