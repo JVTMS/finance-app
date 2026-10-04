@@ -39,6 +39,10 @@ public class TransactionsController(FinanceDbContext db, InvestmentService inves
             return BadRequest("Conta inválida.");
         if (req.Type == "transferencia" && (!req.ToAccountId.HasValue || req.ToAccountId == req.AccountId))
             return BadRequest("Selecione uma conta de destino diferente da origem.");
+        if (req.Type == "transferencia" && !await db.Accounts.AnyAsync(a => a.Id == req.ToAccountId && a.UserId == userId, ct))
+            return BadRequest("Conta de destino inválida.");
+        if (req.CategoryId is int catId && !await db.Categories.AnyAsync(c => c.Id == catId && c.UserId == userId, ct))
+            return BadRequest("Categoria inválida.");
 
         var tx = new Transaction
         {

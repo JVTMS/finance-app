@@ -297,3 +297,33 @@ Aplicativo funcional, responsivo e testado, servido por `npm run dev`
   avisos de vulnerabilidade conhecida.
 - Selos das varreduras: `sha256:4fdcacc1…` (51) e `sha256:f74b7ec7…` (26),
   relatórios completos em `~/.mimosa/security-scans/project-b472a3fc…/`.
+
+---
+
+## Fase 5 — Auditoria geral: fix de validação de posse e recuperação do cluster dev
+
+**Data:** 2026-10-04 · **Pedido:** análise completa do projeto + resolver tudo
+
+### Revisão executada
+- Builds verificados: Vite (769 kB JS), `Finance.Api` e `Finance.App` — 0 erros/avisos.
+- Git limpo e sincronizado com `origin/main` (43d895d); sem referências mortas a
+  `db.js`/`seed.js`; launchers, auth (PBKDF2/JWT), contexts e camada HTTP conferidos.
+
+### Bug corrigido — validação de posse no POST /api/transactions
+`AccountId` e `InvestmentId` já eram validados contra o usuário do token, mas
+`ToAccountId` (conta de destino da transferência) e `CategoryId` não: era possível
+referenciar contas/categorias de outro usuário. Corrigido em
+`TransactionsController.Create` com o mesmo padrão já usado para `AccountId`.
+Testado com 2 usuários reais: destino de outro usuário → 400 "Conta de destino
+inválida."; categoria de outro usuário → 400 "Categoria inválida."; transferência
+válida entre contas próprias → 200. Pasta portátil regenerada (351 MB) com o fix.
+
+### Incidente — cluster dev do PostgreSQL caiu (recuperado)
+O postmaster da porta 5433 morreu às 22:10 (autovacuum launcher saiu com código 1
+e o postmaster não sobreviveu à "reinitializing"), deixando `postmaster.pid` stale
+e um processo órfão segurando o bloco de memória compartilhada e a porta.
+Recuperação: processo órfão terminado, pid stale removido, `pg_ctl start` — WAL
+redo completo e dados do demo intactos (3 contas · 178 transações · 4
+investimentos · 13 categorias). O log mostra "sharing violation" com retry de
+30 s no fsync do diretório — indício de antivírus/hook de varredura tocando
+`pgdata/` durante o start (mesmo padrão do travamento original do serviço 18).
